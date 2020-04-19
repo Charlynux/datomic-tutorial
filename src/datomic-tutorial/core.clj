@@ -34,3 +34,14 @@
        [?list :list/todo ?todo]
        [?list :list/title "learn datomic"]]
      (d/db conn))
+
+;; **Pull query**
+;; https://drewverlee.github.io/posts-output/2020-4-18-learn-datomic-part-2.html
+;;
+;; This type of query is available because we set :db/isComponent true in schema.
+;;
+
+(d/q '[:find (pull  ?list [*])
+       :where
+       [?list :list/title "learn datomic"]]
+     (d/db conn))
