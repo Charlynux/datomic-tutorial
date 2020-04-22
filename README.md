@@ -32,7 +32,7 @@ bin/transactor config/dev-transactor-template.properties
 
 Optional, but I'm happy to rely on some GUI when I don't know exactly what I'm looking for.
 
-## Small tutorial
+## Small tutorial by [Drew Verlee](https://github.com/drewverlee)
 
 At the moment, two parts :
 - [Add data, Basic Querying](https://drewverlee.github.io/posts-output/2020-4-13-learn-datomic-part-1.html)
