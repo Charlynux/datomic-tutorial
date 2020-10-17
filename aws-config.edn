@@ -1,6 +1,0 @@
-{:server-type :peer-server
- :access-key "myaccesskey"
- :secret "mysecret"
- :endpoint "localhost:8998"
- ;; Without this, break on "No name matching localhost found"
- :validate-hostnames false}

@@ -3,12 +3,15 @@
             [clojure.edn :as edn]
             [clojure.pprint :as pp]))
 
-(def client (-> "aws-config.edn"
-                slurp
-                edn/read-string
-                d/client))
+(def client (d/client {:server-type :dev-local :system "dev"}))
 
-(def conn (d/connect client {:db-name "iteracode"}))
+(def db-config {:db-name "todos"})
+
+(comment (d/delete-database client db-config))
+
+(d/create-database client db-config)
+
+(def conn (d/connect client db-config))
 
 (def schema [{:db/ident       :list/title
               :db/valueType   :db.type/string
@@ -25,7 +28,8 @@
 
              {:db/ident       :todo/gid
               :db/valueType   :db.type/string
-              :db/cardinality :db.cardinality/one}])
+              :db/cardinality :db.cardinality/one
+              :db/unique :db.unique/identity}])
 
 (d/transact conn {:tx-data schema})
 
@@ -52,33 +56,38 @@
 ;; This type of query is available because we set :db/isComponent true in schema.
 ;;
 
-(d/q '[:find (pull  ?list [*])
+(d/q '[:find (pull ?list [*])
        :where
        [?list :list/title "learn datomic"]]
      (d/db conn))
 
+;; Doing same request as before
+;; Using power of pull to separate query from fetched datas
+(d/q '[:find (pull ?todo [:todo/gid :todo/description])
+       :where
+       [?list :list/todo ?todo]
+       [?list :list/title "learn datomic"]]
+     (d/db conn))
+
+(d/pull (d/db conn)
+        ;; The underscore in :list/_todo allows us to search "parents"
+        [:todo/description {:list/_todo [:list/title]}]
+        [:todo/gid first-id])
 
 ;; **Updating entity**
 
-(def db-id (ffirst (d/q '[:find ?todo
-                          :in $ ?gid
-                          :where
-                          [?todo :todo/gid ?gid]]
-                        (d/db conn)
-                        first-id)))
-
-(d/transact conn {:tx-data [{:db/id db-id :todo/description "hello, world"}]})
+(d/transact conn {:tx-data [{:todo/gid first-id :todo/description "hello, world"}]})
 
 ;; **Fetching history**
 ;; https://docs.datomic.com/cloud/tutorial/history.html#orgee6614f
 
-(->> (d/q '[:find ?tx ?description ?op
+(->> (d/q '[:find ?tx ?description
             :in $ ?gid
             :where
-            [?todo :todo/description ?description ?tx ?op]
+            ;; op = true means "write"
+            [?todo :todo/description ?description ?tx true]
             [?todo :todo/gid ?gid]]
           (d/history (d/db conn))
           first-id)
-     (filter #(nth % 2)) ;; op at true means assertion, false retractions
      (sort-by first)
      (pp/pprint))
